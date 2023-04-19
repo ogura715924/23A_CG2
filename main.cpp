@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <Windows.h>
+#include<string>
 
 // ウィンドウプロシージャ
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
@@ -68,9 +69,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			DispatchMessage(&msg);
 		} else {
 			// ゲームの処理
+			
 		}
 	}
 	// 出力ウィンドウへの文字出力
 	OutputDebugStringA("Hello,DirectX!\n");
+
 	return 0;
 }
+
