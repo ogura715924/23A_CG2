@@ -1195,5 +1195,3 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	return 0;
 }
 
-メモに書いた
-デスクトップにある
