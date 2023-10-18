@@ -751,8 +751,21 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// BlendStateの設定
 	D3D12_BLEND_DESC blenderDesc{};
+
+	//ブレンドモードを行うための設定
 	// 全ての色要素を描きこむ
 	blenderDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+	blenderDesc.RenderTarget[0].BlendEnable = TRUE;
+	blenderDesc.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
+	blenderDesc.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
+	blenderDesc.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+	blenderDesc.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;
+	blenderDesc.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
+	blenderDesc.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;
+
+	//NormalBlendを紐解く
+	
+
 	// RasiterzerStateの設定
 	D3D12_RASTERIZER_DESC rasterizerDesc{};
 	// 裏面(時計回り)を表示しない
@@ -942,6 +955,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			Matrix4x4 worldViewProjectionMatrix =
 				Multiply(worldMatrix, Multiply(viewMatrix, projectionMatrix));
 			*transformationMatrixData = worldViewProjectionMatrix;
+
 
 #endif
 			//開発用UIの処理。実際に開発用のUIを出す場合はここをゲーム固有の処理に置き換える
