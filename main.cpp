@@ -377,6 +377,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
 	return DefWindowProc(hwnd, msg, wparam, lparam);
 }
 
+
 //DirectXTexを使ってTextureを読むためのLoadTexture関数を作成する
 
 
