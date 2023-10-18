@@ -377,6 +377,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
 	return DefWindowProc(hwnd, msg, wparam, lparam);
 }
 
+//DirectXTexを使ってTextureを読むためのLoadTexture関数を作成する
+
+
 // CompileShader関数
 IDxcBlob* compileShader(
 	// CompilerするShaderファイルへのパス
@@ -453,7 +456,8 @@ IDxcBlob* compileShader(
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
-
+	//COMの初期化
+	CoInitializeEx(0, COINIT_MULTITHREADED);
 	// ウィンドウクラスの登録
 	WNDCLASS wc{};
 	// ウィンドウプロシージャ
