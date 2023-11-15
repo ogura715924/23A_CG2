@@ -358,6 +358,25 @@ std::string ConvertString(const std::wstring& str) {
 	return result;
 }
 
+enum BlendMode {
+	//ブレンドなし
+	kBlendModeNone,
+	//通常aブレンド。デフォルト。SrcA+Dest*(1-SrcA)
+	kBlendModeNormal,
+	//加算。Src*SrcA+Dest*1
+	kBlendModeAdd,
+	//減算。Dest*1-Src*SrcA
+	kBlendModeSubtract,
+	//乗算。Str*0+Dest*Src
+	kBlendModeMultily,
+	//スクリーン。Src*(1-Dest)+Dest*1
+	kBlendModeScreen,
+	//利用してはいけない
+	kCountOFBlendMode,
+};
+
+
+
 // ウィンドウプロシージャ
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
 
@@ -751,7 +770,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// BlendStateの設定
 	D3D12_BLEND_DESC blenderDesc{};
-
 	//ブレンドモードを行うための設定
 	// 全ての色要素を描きこむ
 	blenderDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
