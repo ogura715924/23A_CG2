@@ -27,6 +27,10 @@ const struct Vector4 {
 	float Semantics;
 };
 
+struct Matrix3x3 {
+	float m[3][3];
+};
+
 struct Matrix4x4 {
 	float m[4][4];
 };
@@ -276,6 +280,14 @@ Matrix4x4 Inverse(const Matrix4x4& m) {
 
 	return result;
 }
+
+struct Material {
+	Vector4 color;
+	int32_t enbleLighting;
+	Matrix3x3 uvTransform;
+};
+
+//float3
 
 // ImGui DescriptorHeapの作成関数
 ID3D12DescriptorHeap* CreateDescriptorHeap(
@@ -668,7 +680,22 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	//// ディスクリプタヒープが作れなかったので起動できない
 	//assert(SUCCEEDED(hr));
 
+	ID3D12Resource* indexResourceSprite = CreateBufferResource(device, sizeof(uint32_t) * 6);
+	D3D12_INDEX_BUFFER_VIEW indexBufferViewSprite{};
+	//リソースの先頭のアドレスから使う
+	indexBufferViewSprite.BufferLocation = indexResourceSprite->GetGPUVirtualAddress();
+	//使用するリソースのサイズはindex6つ分のサイズ
+	indexBufferViewSprite.SizeInBytes = sizeof(uint32_t) * 6;
+	//indexはuint32_tとする
+	indexBufferViewSprite.Format = DXGI_FORMAT_R32_UINT;
 
+	//インデックスリソースにデータを書き込む
+	uint32_t* indexDataSprite = nullptr;
+	indexResourceSprite->Map(0, nullptr, reinterpret_cast<void**>(&indexDataSprite));
+	indexDataSprite[0] = 0; indexDataSprite[1] = 1; indexDataSprite[2] = 2;
+	indexDataSprite[3] = 1; indexDataSprite[4] = 3; indexDataSprite[5] = 2;
+
+	commandList->IASetIndexBuffer(&indexBufferViewSprite);//IBVを設定
 
 	// SwapChainからResourceを引っ張ってくる
 	ID3D12Resource* swapChainResources[2] = { nullptr };
@@ -889,7 +916,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// 右下
 	vertexData[2] = { 0.5f, -0.5f, 0.0f, 1.0f };
 
-	ModelData modelData;
+	//ModelData modelData;
 
 
 
@@ -1033,6 +1060,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 			// 描画!(DrawCall/ドローコール)。3頂点で1つのインスタンス。インスタンスについては今後
 			commandList->DrawInstanced(3, 1, 0, 0);
+			commandList->DrawIndexedInstanced(6, 1, 0, 0, 0);
 
 			//実際のcommandListのImGuiの描画コマンドを積む
 			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList);
