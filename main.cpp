@@ -7,9 +7,12 @@
 #include <dxgidebug.h>
 #include <format>
 #include <string>
+#include"MyMath.h"
+
 #include"externals/imgui/imgui.h"
 #include"externals/imgui/imgui_impl_dx12.h"
 #include"externals/imgui/imgui_impl_win32.h"
+
 extern IMGUI_IMPL_API LRESULT
 ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wPram, LPARAM lParam);
 
@@ -20,262 +23,6 @@ ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wPram, LPARAM lParam)
 
 void Log(const std::string& message) { OutputDebugStringA(message.c_str()); }
 
-const struct Vector4 {
-	float x;
-	float y;
-	float z;
-	float Semantics;
-};
-
-struct Matrix4x4 {
-	float m[4][4];
-};
-
-struct Vector3 {
-	float x, y, z;
-};
-
-struct Transform {
-	Vector3 scale;
-	Vector3 rotate;
-	Vector3 translate;
-};
-
-Matrix4x4 Multiply(const Matrix4x4& m1, const Matrix4x4& m2) {
-	Matrix4x4 resultMultiply{};
-	for (int row = 0; row < 4; ++row) {
-		for (int column = 0; column < 4; ++column) {
-			resultMultiply.m[row][column] =
-				m1.m[row][0] * m2.m[0][column] + m1.m[row][1] * m2.m[1][column] +
-				m1.m[row][2] * m2.m[2][column] + m1.m[row][3] * m2.m[3][column];
-		}
-	}
-	return resultMultiply;
-}
-Matrix4x4 MakeAffineMatrix(const Vector3& scale, const Vector3& rotate, const Vector3& translate) {
-	Matrix4x4 result = { 0 };
-
-	Matrix4x4 matScale = { 0 };
-	matScale.m[0][0] = scale.x;
-	matScale.m[1][1] = scale.y;
-	matScale.m[2][2] = scale.z;
-	matScale.m[3][3] = 1;
-
-	// 1.X軸回転行列
-	Matrix4x4 matRotX = { 0 };
-	matRotX.m[0][0] = 1;
-	matRotX.m[1][1] = cosf(rotate.x);
-	matRotX.m[2][1] = -sinf(rotate.x);
-	matRotX.m[1][2] = sinf(rotate.x);
-	matRotX.m[2][2] = cosf(rotate.x);
-	matRotX.m[3][3] = 1;
-
-	// 2.Y軸回転行列
-	Matrix4x4 matRotY = { 0 };
-	matRotY.m[0][0] = cosf(rotate.y);
-	matRotY.m[1][1] = 1;
-	matRotY.m[0][2] = -sinf(rotate.y);
-	matRotY.m[2][0] = sinf(rotate.y);
-	matRotY.m[2][2] = cosf(rotate.y);
-	matRotY.m[3][3] = 1;
-
-	// 3.Z軸回転行列
-	Matrix4x4 matRotZ{ 0 };
-
-	matRotZ.m[0][0] = cosf(rotate.z);
-	matRotZ.m[1][0] = sinf(rotate.z);
-	matRotZ.m[0][1] = -sinf(rotate.z);
-	matRotZ.m[1][1] = cosf(rotate.z);
-	matRotZ.m[2][2] = 1;
-	matRotZ.m[3][3] = 1;
-
-	Matrix4x4 matRot = Multiply(Multiply(matRotZ, matRotX), matRotY);
-
-	// 平行移動行列を宣言
-	Matrix4x4 matTrans = { 0 };
-	matTrans.m[0][0] = 1;
-	matTrans.m[1][1] = 1;
-	matTrans.m[2][2] = 1;
-	matTrans.m[3][3] = 1;
-	matTrans.m[3][0] = translate.x;
-	matTrans.m[3][1] = translate.y;
-	matTrans.m[3][2] = translate.z;
-
-	// 戻り値　スケール*回転*平行移動;
-	return Multiply(Multiply(matScale, matRot), matTrans);
-}
-
-// 6.単位行列の作成
-Matrix4x4 MakeIdentity4x4() {
-	Matrix4x4 result{};
-	result.m[0][0] = 1.0f;
-	result.m[0][1] = 0.0f;
-	result.m[0][2] = 0.0f;
-	result.m[0][3] = 0.0f;
-
-	result.m[1][0] = 0.0f;
-	result.m[1][1] = 1.0f;
-	result.m[1][2] = 0.0f;
-	result.m[1][3] = 0.0f;
-
-	result.m[2][0] = 0.0f;
-	result.m[2][1] = 0.0f;
-	result.m[2][2] = 1.0f;
-	result.m[2][3] = 0.0f;
-
-	result.m[3][0] = 0.0f;
-	result.m[3][1] = 0.0f;
-	result.m[3][2] = 0.0f;
-	result.m[3][3] = 1.0f;
-
-	return result;
-}
-
-// 1.透視投影行列
-Matrix4x4 MakePerspectiveFovMatrix(float fovY, float aspectRatio, float nearClip, float farClip) {
-	Matrix4x4 perspective{};
-	perspective.m[0][0] = (1 / aspectRatio) * (1.0f / tanf(fovY / 2));
-	perspective.m[0][1] = 0.0f;
-	perspective.m[0][2] = 0.0f;
-	perspective.m[0][3] = 0.0f;
-
-	perspective.m[1][0] = 0.0f;
-	perspective.m[1][1] = 1.0f / tan(fovY / 2);
-	perspective.m[1][2] = 0.0f;
-	perspective.m[1][3] = 0.0f;
-
-	perspective.m[2][0] = 0.0f;
-	perspective.m[2][1] = 0.0f;
-	perspective.m[2][2] = farClip / (farClip - nearClip);
-	perspective.m[2][3] = 1.0f;
-
-	perspective.m[3][0] = 0.0f;
-	perspective.m[3][1] = 0.0f;
-	perspective.m[3][2] = -(nearClip * farClip) / (farClip - nearClip);
-	perspective.m[3][3] = 0.0f;
-	return perspective;
-};
-
-// 4.逆行列
-Matrix4x4 Inverse(const Matrix4x4& m) {
-	Matrix4x4 result{};
-	float formula = m.m[0][0] * m.m[1][1] * m.m[2][2] * m.m[3][3] +
-		m.m[0][0] * m.m[1][2] * m.m[2][3] * m.m[3][1] +
-		m.m[0][0] * m.m[1][3] * m.m[2][1] * m.m[3][2] -
-
-		m.m[0][0] * m.m[1][3] * m.m[2][2] * m.m[3][1] -
-		m.m[0][0] * m.m[1][2] * m.m[2][1] * m.m[3][3] -
-		m.m[0][0] * m.m[1][1] * m.m[2][3] * m.m[3][2] -
-
-		m.m[0][1] * m.m[1][0] * m.m[2][2] * m.m[3][3] -
-		m.m[0][2] * m.m[1][0] * m.m[2][3] * m.m[3][1] -
-		m.m[0][3] * m.m[1][0] * m.m[2][1] * m.m[3][2] +
-
-		m.m[0][3] * m.m[1][0] * m.m[2][2] * m.m[3][1] +
-		m.m[0][2] * m.m[1][0] * m.m[2][1] * m.m[3][3] +
-		m.m[0][1] * m.m[1][0] * m.m[2][3] * m.m[3][2] +
-
-		m.m[0][1] * m.m[1][2] * m.m[2][0] * m.m[3][3] +
-		m.m[0][2] * m.m[1][3] * m.m[2][0] * m.m[3][1] +
-		m.m[0][3] * m.m[1][1] * m.m[2][0] * m.m[3][2] -
-
-		m.m[0][3] * m.m[1][2] * m.m[2][0] * m.m[3][1] -
-		m.m[0][2] * m.m[1][1] * m.m[2][0] * m.m[3][3] -
-		m.m[0][1] * m.m[1][3] * m.m[2][0] * m.m[3][2] -
-
-		m.m[0][1] * m.m[1][2] * m.m[2][3] * m.m[3][0] -
-		m.m[0][2] * m.m[1][3] * m.m[2][1] * m.m[3][0] -
-		m.m[0][3] * m.m[1][1] * m.m[2][2] * m.m[3][0] +
-
-		m.m[0][3] * m.m[1][2] * m.m[2][1] * m.m[3][0] +
-		m.m[0][2] * m.m[1][1] * m.m[2][3] * m.m[3][0] +
-		m.m[0][1] * m.m[1][3] * m.m[2][2] * m.m[3][0];
-
-	assert(formula != 0.0f);
-	float formulaRec = 1.0f / formula;
-
-	result.m[0][0] = (m.m[1][1] * m.m[2][2] * m.m[3][3] + m.m[1][2] * m.m[2][3] * m.m[3][1] +
-		m.m[1][3] * m.m[2][1] * m.m[3][2] - m.m[1][3] * m.m[2][2] * m.m[3][1] -
-		m.m[1][2] * m.m[2][1] * m.m[3][3] - m.m[1][1] * m.m[2][3] * m.m[3][2]) *
-		formulaRec;
-
-	result.m[0][1] = (-m.m[0][1] * m.m[2][2] * m.m[3][3] - m.m[0][2] * m.m[2][3] * m.m[3][1] -
-		m.m[0][3] * m.m[2][1] * m.m[3][2] + m.m[0][3] * m.m[2][2] * m.m[3][1] +
-		m.m[0][2] * m.m[2][1] * m.m[3][3] + m.m[0][1] * m.m[2][3] * m.m[3][2]) *
-		formulaRec;
-
-	result.m[0][2] = (m.m[0][1] * m.m[1][2] * m.m[3][3] + m.m[0][2] * m.m[1][3] * m.m[3][1] +
-		m.m[0][3] * m.m[1][1] * m.m[3][2] - m.m[0][3] * m.m[1][2] * m.m[3][1] -
-		m.m[0][2] * m.m[1][1] * m.m[3][3] - m.m[0][1] * m.m[1][3] * m.m[3][2]) *
-		formulaRec;
-
-	result.m[0][3] = (-m.m[0][1] * m.m[1][2] * m.m[2][3] - m.m[0][2] * m.m[1][3] * m.m[2][1] -
-		m.m[0][3] * m.m[1][1] * m.m[2][2] + m.m[0][3] * m.m[1][2] * m.m[2][1] +
-		m.m[0][2] * m.m[1][1] * m.m[2][3] + m.m[0][1] * m.m[1][3] * m.m[2][2]) *
-		formulaRec;
-
-	result.m[1][0] = (-m.m[1][0] * m.m[2][2] * m.m[3][3] - m.m[1][2] * m.m[2][3] * m.m[3][0] -
-		m.m[1][3] * m.m[2][0] * m.m[3][2] + m.m[1][3] * m.m[2][2] * m.m[3][0] +
-		m.m[1][2] * m.m[2][0] * m.m[3][3] + m.m[1][0] * m.m[2][3] * m.m[3][2]) *
-		formulaRec;
-
-	result.m[1][1] = (m.m[0][0] * m.m[2][2] * m.m[3][3] + m.m[0][2] * m.m[2][3] * m.m[3][0] + //
-		m.m[0][3] * m.m[2][0] * m.m[3][2] - m.m[0][3] * m.m[2][2] * m.m[3][0] -
-		m.m[0][2] * m.m[2][0] * m.m[3][3] - m.m[0][0] * m.m[2][3] * m.m[3][2]) *
-		formulaRec;
-
-	result.m[1][2] = (-m.m[0][0] * m.m[1][2] * m.m[3][3] - m.m[0][2] * m.m[1][3] * m.m[3][0] -
-		m.m[0][3] * m.m[1][0] * m.m[3][2] + m.m[0][3] * m.m[1][2] * m.m[3][0] +
-		m.m[0][2] * m.m[1][0] * m.m[3][3] + m.m[0][0] * m.m[1][3] * m.m[3][2]) *
-		formulaRec;
-
-	result.m[1][3] = (m.m[0][0] * m.m[1][2] * m.m[2][3] + m.m[0][2] * m.m[1][3] * m.m[2][0] +
-		m.m[0][3] * m.m[1][0] * m.m[2][2] - m.m[0][3] * m.m[1][2] * m.m[2][0] -
-		m.m[0][2] * m.m[1][0] * m.m[2][3] - m.m[0][0] * m.m[1][3] * m.m[2][2]) *
-		formulaRec;
-
-	result.m[2][0] = (m.m[1][0] * m.m[2][1] * m.m[3][3] + m.m[1][1] * m.m[2][3] * m.m[3][0] +
-		m.m[1][3] * m.m[2][0] * m.m[3][1] - m.m[1][3] * m.m[2][1] * m.m[3][0] -
-		m.m[1][1] * m.m[2][0] * m.m[3][3] - m.m[1][0] * m.m[2][3] * m.m[3][1]) *
-		formulaRec;
-
-	result.m[2][1] = (-m.m[0][0] * m.m[2][1] * m.m[3][3] - m.m[0][1] * m.m[2][3] * m.m[3][0] -
-		m.m[0][3] * m.m[2][0] * m.m[3][1] + m.m[0][3] * m.m[2][1] * m.m[3][0] +
-		m.m[0][1] * m.m[2][0] * m.m[3][3] + m.m[0][0] * m.m[2][3] * m.m[3][1]) *
-		formulaRec;
-
-	result.m[2][2] = (m.m[0][0] * m.m[1][1] * m.m[3][3] + m.m[0][1] * m.m[1][3] * m.m[3][0] +
-		m.m[0][3] * m.m[1][0] * m.m[3][1] - m.m[0][3] * m.m[1][1] * m.m[3][0] -
-		m.m[0][1] * m.m[1][0] * m.m[3][3] - m.m[0][0] * m.m[1][3] * m.m[3][1]) *
-		formulaRec;
-
-	result.m[2][3] = (m.m[0][0] * m.m[1][1] * m.m[2][3] + m.m[0][1] * m.m[1][3] * m.m[2][0] +
-		m.m[0][3] * m.m[1][0] * m.m[2][1] - m.m[0][3] * m.m[1][1] * m.m[2][0] -
-		m.m[0][1] * m.m[1][0] * m.m[2][3] - m.m[0][0] * m.m[1][3] * m.m[2][1]) *
-		formulaRec;
-
-	result.m[3][0] = (-m.m[1][0] * m.m[2][1] * m.m[3][2] - m.m[1][1] * m.m[2][2] * m.m[3][0] -
-		m.m[1][2] * m.m[2][0] * m.m[3][1] + m.m[1][2] * m.m[2][1] * m.m[3][0] +
-		m.m[1][1] * m.m[2][0] * m.m[3][2] + m.m[1][0] * m.m[2][2] * m.m[3][1]) *
-		formulaRec;
-
-	result.m[3][1] = (m.m[0][0] * m.m[2][1] * m.m[3][2] + m.m[0][1] * m.m[2][2] * m.m[3][0] +
-		m.m[0][2] * m.m[2][0] * m.m[3][1] - m.m[0][2] * m.m[2][1] * m.m[3][0] -
-		m.m[0][1] * m.m[2][0] * m.m[3][2] - m.m[0][0] * m.m[2][2] * m.m[3][1]) *
-		formulaRec;
-
-	result.m[3][2] = (-m.m[0][0] * m.m[1][1] * m.m[3][2] - m.m[0][1] * m.m[1][2] * m.m[3][0] -
-		m.m[0][2] * m.m[1][0] * m.m[3][1] + m.m[0][2] * m.m[1][1] * m.m[3][0] +
-		m.m[0][1] * m.m[1][0] * m.m[3][2] + m.m[0][0] * m.m[1][2] * m.m[3][1]) *
-		formulaRec;
-
-	result.m[3][3] = (m.m[0][0] * m.m[1][1] * m.m[2][2] + m.m[0][1] * m.m[1][2] * m.m[2][0] +
-		m.m[0][2] * m.m[1][0] * m.m[2][1] - m.m[0][2] * m.m[1][1] * m.m[2][0] -
-		m.m[0][1] * m.m[1][0] * m.m[2][2] - m.m[0][0] * m.m[1][2] * m.m[2][1]) *
-		formulaRec;
-
-	return result;
-}
 
 // ImGui DescriptorHeapの作成関数
 ID3D12DescriptorHeap* CreateDescriptorHeap(
@@ -652,21 +399,21 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		reinterpret_cast<IDXGISwapChain1**>(&swapChain));
 	assert(SUCCEEDED(hr));
 
+	// ディスクリプタヒープの生成
+	ID3D12DescriptorHeap* srvDescriptorHeap = nullptr;
+	D3D12_DESCRIPTOR_HEAP_DESC rtvDescriptorHeapDesc{};
+	rtvDescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV; // レンダーターゲットビュー用
+	rtvDescriptorHeapDesc.NumDescriptors = 2; // ダブルバッファ用にふたつ。多くても別に構わない。
+	hr = device->CreateDescriptorHeap(&rtvDescriptorHeapDesc, IID_PPV_ARGS(&srvDescriptorHeap));
+	// ディスクリプタヒープが作れなかったので起動できない
+	assert(SUCCEEDED(hr));
+
 	// RTV用のヒープでディスクリプタの数は2。RTVはsader内で触るものではないので、ShaderVisibleはfalse
 	ID3D12DescriptorHeap* rtvDescriptorHeap =
 		CreateDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 2, false);
 	// SRV用のヒープでディスクリプタの数は128。SRVはShader内で触るものなので、ShaderVisibleはtrue
-	ID3D12DescriptorHeap* srvDescriptorHeap =
+	srvDescriptorHeap =
 		CreateDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 128, true);
-
-	// ディスクリプタヒープの生成
-	//ID3D12DescriptorHeap* srvDescriptorHeap = nullptr;
-	//D3D12_DESCRIPTOR_HEAP_DESC rtvDescriptorHeapDesc{};
-	//rtvDescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV; // レンダーターゲットビュー用
-	//rtvDescriptorHeapDesc.NumDescriptors = 2; // ダブルバッファ用にふたつ。多くても別に構わない。
-	//hr = device->CreateDescriptorHeap(&rtvDescriptorHeapDesc, IID_PPV_ARGS(&srvDescriptorHeap));
-	//// ディスクリプタヒープが作れなかったので起動できない
-	//assert(SUCCEEDED(hr));
 
 
 
@@ -940,6 +687,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		rtvDesc.Format, srvDescriptorHeap,
 		srvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
 		srvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+
 	// メインループ
 	MSG msg{};
 	// ウィンドウの×ボタンが押されるまでループ
@@ -1107,24 +855,25 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	wvpResource->Release();
 	transformationMatrixResource->Release();
 	rtvDescriptorHeap->Release();
-	//srvDescriporHeap->Release();
+	srvDescriptorHeap->Release();
 
 
 
-
-
-
+	// ImGuiリソース解放
+	ImGui_ImplDX12_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
 
 #ifdef _DEBUG
-	//debugController->Release();
+	debugController->Release();
 #endif
 	CloseWindow(hwnd);
-	//
-	// #ifdef _DEBUG
-	//	// 警告時に止まる
-	//	infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, true);
-		//infoQueue->Release();
-	// #endif
+	
+	 #ifdef _DEBUG
+		// 警告時に止まる
+		infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, true);
+		infoQueue->Release();
+	 #endif
 
 	// リソースリークチェック
 	IDXGIDebug1* debug;
