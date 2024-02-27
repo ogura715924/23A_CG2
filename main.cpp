@@ -1147,7 +1147,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	swapChainResources[1]->Release();
 	swapChain->Release();
 	commandList->Release();
-	commandAllocator-Release();
+	commandAllocator->Release();
 	commandQueue->Release();
 	device->Release();
 	useAdapter->Release();
