@@ -33,6 +33,7 @@ struct Transform {
 struct VertexData{
 	Vector4 position;
 	Vector2 texcoord;
+	Vector3 normal;
 };
 
 Vector3 TransformNormal(const Vector3& v, const Matrix4x4& m);
