@@ -720,13 +720,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	D3D12_HEAP_PROPERTIES uploadHeapProperties{};
 	uploadHeapProperties.Type = D3D12_HEAP_TYPE_UPLOAD; // UploadHeapを使う
 
-	ID3D12Resource* vertexResource = CreateBufferResource(device, sizeof(VertexData) * 3);
+	ID3D12Resource* vertexResource = CreateBufferResource(device, sizeof(VertexData) * 6);
 
 	// 頂点リソースの設定
 	D3D12_RESOURCE_DESC vertexResourceDesc{};
 	// バッファリソース。テクスチャの場合はまた別の設定する
 	vertexResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-	vertexResourceDesc.Width = sizeof(VertexData) * 3; // リソースのサイズ。今回はVector4を3頂点文
+	vertexResourceDesc.Width = sizeof(VertexData) * 6; // リソースのサイズ。今回はVector4を3頂点文
 	// バッファの場合はこれらは1にする決まり
 	vertexResourceDesc.Height = 1;
 	vertexResourceDesc.DepthOrArraySize = 1;
@@ -778,7 +778,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 //単位行列を書き込んでおく
 	for (uint32_t index = 0; index < kNumInstance; ++index) {
 		instancingData[index].WVP = MakeIdentity4x4();
-		instancingData[index].World = MakeIdentity4x4();
+		//instancingData[index].World = MakeIdentity4x4();
 	}
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC instancingSrvDesc{};
@@ -817,7 +817,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// リソースの先頭のアドレスから使う
 	vertexBufferView.BufferLocation = vertexResource->GetGPUVirtualAddress();
 	// 使用するリソースのサイズは頂点3つ分のサイズ
-	vertexBufferView.SizeInBytes = sizeof(VertexData) * 3;
+	vertexBufferView.SizeInBytes = sizeof(VertexData) * 6;
 	// 1頂点当たり
 	vertexBufferView.StrideInBytes = sizeof(VertexData);
 
@@ -835,14 +835,25 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	//左下
 	vertexData[0].position = { -0.5f,-0.5f,0.0f,1.0f };
 	vertexData[0].texcoord = { 0.0f,1.0f };
-
 	//上
-	vertexData[1].position = { 0.5f,0.5f,0.0f,1.0f };
-	vertexData[1].texcoord = { 0.5f,0.0f };
-
+	vertexData[1].position = { -0.5f,0.5f,0.0f,1.0f };
+	vertexData[1].texcoord = { 0.0f,0.0f };
 	//右下
 	vertexData[2].position = { 0.5f,-0.5f,0.0f,1.0f };
 	vertexData[2].texcoord = { 1.0f,1.0f };
+
+	//左下2
+	vertexData[3].position = { -0.5f,0.5f,0.0f,1.0f };
+	vertexData[3].texcoord = { 0.0f,0.0f };
+	//上2
+	vertexData[4].position = { 0.5f,0.5f,0.0f,1.0f };
+	vertexData[4].texcoord = { 1.0f,0.0f };
+	//右下2
+	vertexData[5].position = { 0.5f,-0.5f,-0.0f,1.0f };
+	vertexData[5].texcoord = { 1.0f,1.0f };
+
+
+
 
 
 
@@ -1078,7 +1089,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			// 描画!(DrawCall/ドローコール)。3頂点で1つのインスタンス。インスタンスについては今後
 			//commandList->DrawInstanced(3, 1, 0, 0);
 			//描画！6頂点のいたポリゴンを,kNumInstance(今回は10)だけInstance描画を行う
-			commandList->DrawInstanced(3, kNumInstance, 0, 0);
+			commandList->DrawInstanced(6, kNumInstance, 0, 0);
 
 
 			//実際のcommandListのImGuiの描画コマンドを積む
@@ -1136,7 +1147,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	swapChainResources[1]->Release();
 	swapChain->Release();
 	commandList->Release();
-	commandAllocator->Release();
+	commandAllocator-Release();
 	commandQueue->Release();
 	device->Release();
 	useAdapter->Release();
