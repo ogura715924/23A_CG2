@@ -9,10 +9,11 @@ struct VertexShaderInput {
 	float32_t4 position : POSITION0;
 	float32_t2 texcoord : TEXCOORD0;
 };
-VertexShaderOutput main(VertexShaderInput input) { 
+VertexShaderOutput main(VertexShaderInput input,uint32_t4 instanceId : SV_InstanceID) { 
 	VertexShaderOutput output;
-	output.position = mul(input.position, gTransformationMatrix.WVP);
+	output.position = mul(input.position, gTransformationMatrices[instanceId].WVP);
 	output.texcoord=input.texcoord;
+	output.normal=normalize(mul(input.normal,(float32 t3x3)gTransformationMatrices[instancedId].world));
 	return output;
 }
 
